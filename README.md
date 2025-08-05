@@ -88,6 +88,13 @@ OpenXI
     #chat {
       display: none;
     }
+
+    #history {
+      display: none;
+      margin-top: 20px;
+      border-top: 1px solid #ccc;
+      padding-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -124,6 +131,13 @@ OpenXI
       <div id="chatBox"></div>
       <input type="text" id="userInput" placeholder="Напиши математический вопрос...">
       <button onclick="sendMessage()">Отправить</button>
+      <button onclick="showHistory()">Мои решения</button>
+    </div>
+
+    <!-- Архив -->
+    <div id="history">
+      <h4>Архив решений:</h4>
+      <ul id="historyList"></ul>
     </div>
   </div>
 
@@ -132,16 +146,21 @@ OpenXI
       document.getElementById('loginForm').style.display = 'none';
       document.getElementById('registerForm').style.display = 'none';
       document.getElementById('chat').style.display = 'none';
+      document.getElementById('history').style.display = 'none';
       document.getElementById(formId + 'Form').style.display = 'block';
     }
+
+    let currentUser = null;
 
     function login() {
       const name = document.getElementById('loginName').value;
       const pass = document.getElementById('loginPass').value;
       if (name && pass) {
+        currentUser = name;
         alert("Добро пожаловать, " + name + "!");
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('chat').style.display = 'block';
+        loadHistory();
       } else {
         alert("Введите имя и пароль.");
       }
@@ -172,6 +191,7 @@ OpenXI
       setTimeout(() => {
         const botReply = getBotReply(userText);
         appendMessage('bot', botReply);
+        saveToHistory(userText, botReply);
       }, 500);
     }
 
@@ -185,7 +205,6 @@ OpenXI
 
     function getBotReply(text) {
       try {
-        // Решение уравнений
         if (text.includes('=')) {
           const eq = math.parse(text);
           const simplified = math.simplify(eq);
@@ -193,12 +212,37 @@ OpenXI
           return `Решение: x = ${solution}`;
         }
 
-        // Просто вычислить выражение
         const result = math.evaluate(text);
         return `Ответ: ${result}`;
       } catch (e) {
         return "Ошибка: Некорректный пример или уравнение.";
       }
+    }
+
+    function saveToHistory(question, answer) {
+      if (!currentUser) return;
+      const historyKey = `history_${currentUser}`;
+      const existing = JSON.parse(localStorage.getItem(historyKey)) || [];
+      existing.push({ question, answer, time: new Date().toLocaleString() });
+      localStorage.setItem(historyKey, JSON.stringify(existing));
+    }
+
+    function loadHistory() {
+      if (!currentUser) return;
+      const historyKey = `history_${currentUser}`;
+      const history = JSON.parse(localStorage.getItem(historyKey)) || [];
+      const list = document.getElementById('historyList');
+      list.innerHTML = '';
+      history.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = `[${item.time}] ${item.question} => ${item.answer}`;
+        list.appendChild(li);
+      });
+    }
+
+    function showHistory() {
+      loadHistory();
+      document.getElementById('history').style.display = 'block';
     }
   </script>
 </body>
